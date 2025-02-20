@@ -16,6 +16,25 @@ export type DashLineOptions = {
     alignment?: number
 }
 
+function getPointOnArc(
+    cx: number,
+    cy: number,
+    radius: number,
+    angle: number,
+    matrix?: PIXI.Matrix
+) {
+    const radian = (angle * Math.PI) / 180
+    const x = cx + Math.cos(radian) * radius
+    const y = cy + Math.sin(radian) * radius
+
+    if (matrix) {
+        const p = new PIXI.Point(x, y)
+        matrix.apply(p, p)
+        return { x: p.x, y: p.y }
+    }
+    return { x, y }
+}
+
 const dashLineOptionsDefault: Partial<DashLineOptions> = {
     dash: [10, 5],
     width: 1,
@@ -312,22 +331,22 @@ export class DashLine {
                 }
             }
         } else if (matrix) {
-                const point = points[0] as PIXI.Point
+            const point = points[0] as PIXI.Point
+            p.copyFrom(point)
+            matrix.apply(p, p)
+            this.moveTo(p.x, p.y)
+            for (let i = 1; i < points.length; i++) {
+                const point = points[i] as PIXI.Point
                 p.copyFrom(point)
                 matrix.apply(p, p)
-                this.moveTo(p.x, p.y)
-                for (let i = 1; i < points.length; i++) {
-                    const point = points[i] as PIXI.Point
-                    p.copyFrom(point)
-                    matrix.apply(p, p)
-                    this.lineTo(p.x, p.y, i === points.length - 1)
-                }
-            } else {
-                const point = points[0] as PIXI.Point
-                this.moveTo(point.x, point.y)
-                for (let i = 1; i < points.length; i++) {
-                    const point = points[i] as PIXI.Point
-                    this.lineTo(point.x, point.y, i === points.length - 1)
+                this.lineTo(p.x, p.y, i === points.length - 1)
+            }
+        } else {
+            const point = points[0] as PIXI.Point
+            this.moveTo(point.x, point.y)
+            for (let i = 1; i < points.length; i++) {
+                const point = points[i] as PIXI.Point
+                this.lineTo(point.x, point.y, i === points.length - 1)
             }
         }
         return this
@@ -374,6 +393,112 @@ export class DashLine {
                 .lineTo(x, y + height)
                 .lineTo(x, y, true)
         }
+        return this
+    }
+
+    roundRect(
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        cornerRadius: number = 10,
+        matrix?: PIXI.Matrix
+    ): this {
+        const minSize = Math.min(width, height)
+        cornerRadius = Math.min(cornerRadius, minSize / 2) // Ensure radius is valid
+
+        const p = new PIXI.Point()
+
+        // Helper function to move points using matrix
+        const transformPoint = (px: number, py: number) => {
+            if (matrix) {
+                p.set(px, py)
+                matrix.apply(p, p)
+                return { x: p.x, y: p.y }
+            }
+            return { x: px, y: py }
+        }
+
+        // Start at the top-left corner, moving to the first point
+        const start = transformPoint(x + cornerRadius, y)
+        this.moveTo(start.x, start.y)
+
+        // Top edge
+        let end = transformPoint(x + width - cornerRadius, y)
+        this.lineTo(end.x, end.y)
+        this.drawDashedArc(
+            x + width - cornerRadius,
+            y + cornerRadius,
+            cornerRadius,
+            -90,
+            0,
+            matrix
+        )
+
+        // Right edge
+        end = transformPoint(x + width, y + height - cornerRadius)
+        this.lineTo(end.x, end.y)
+        this.drawDashedArc(
+            x + width - cornerRadius,
+            y + height - cornerRadius,
+            cornerRadius,
+            0,
+            90,
+            matrix
+        )
+
+        // Bottom edge
+        end = transformPoint(x + cornerRadius, y + height)
+        this.lineTo(end.x, end.y)
+        this.drawDashedArc(
+            x + cornerRadius,
+            y + height - cornerRadius,
+            cornerRadius,
+            90,
+            180,
+            matrix
+        )
+
+        // Left edge
+        end = transformPoint(x, y + cornerRadius)
+        this.lineTo(end.x, end.y)
+        this.drawDashedArc(
+            x + cornerRadius,
+            y + cornerRadius,
+            cornerRadius,
+            180,
+            270,
+            matrix
+        )
+
+        // Close path
+        this.lineTo(start.x, start.y, true)
+
+        return this
+    }
+
+    private drawDashedArc(
+        cx: number,
+        cy: number,
+        radius: number,
+        startAngle: number,
+        endAngle: number,
+        matrix?: PIXI.Matrix
+    ): this {
+        const segments = 10 // Increase for smoother curves
+        const angleStep = (endAngle - startAngle) / segments
+
+        for (let i = 1; i <= segments; i++) {
+            const nextPoint = getPointOnArc(
+                cx,
+                cy,
+                radius,
+                startAngle + i * angleStep,
+                matrix
+            )
+            this.lineTo(nextPoint.x, nextPoint.y)
+        }
+
         return this
     }
 
