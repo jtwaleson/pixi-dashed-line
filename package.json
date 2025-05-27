@@ -39,7 +39,7 @@
   "devDependencies": {
     "esbuild": "^0.25.0",
     "pixi-viewport": "^6.0.3",
-    "pixi.js": "^8.8.0",
+    "pixi.js": "^8.9.2",
     "typescript": "^5.7.3"
   }
 }
