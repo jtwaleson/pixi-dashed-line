@@ -99,22 +99,25 @@ export class DashLine {
         this.dashSize = this.dash.reduce((a, b) => a + b)
         this.useTexture = Boolean(mergedOpts.useTexture)
         this.options = mergedOpts
-        this.setStrokeStyle()
+        // Initialize stroke style
+        this.setStrokeStyle().catch(console.error)
     }
 
     /** resets line style to enable dashed line (useful if lineStyle was changed on graphics element) */
-    setStrokeStyle() {
+    async setStrokeStyle() {
         const options = this.options
         if (this.useTexture) {
-            const texture = DashLine.getTexture(options, this.dashSize)
-            this.graphics.stroke({
-                width: options.width * options.scale,
-                color: options.color,
-                alpha: options.alpha,
-                texture,
-                alignment: options.alignment,
-            })
-            this.activeTexture = texture!
+            const texture = await DashLine.getTexture(options, this.dashSize)
+            if (texture) {
+                this.graphics.stroke({
+                    width: options.width * options.scale,
+                    color: options.color,
+                    alpha: options.alpha,
+                    texture,
+                    alignment: options.alignment,
+                })
+                this.activeTexture = texture
+            }
         } else {
             this.graphics.stroke({
                 width: options.width * options.scale,
