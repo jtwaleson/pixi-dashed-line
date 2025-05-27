@@ -1,23 +1,23 @@
-import * as PIXI from 'pixi.js';
+import { Graphics, Point, Texture, Matrix } from "pixi.js";
 /** Define the dash: [dash length, gap size, dash size, gap size, ...] */
-export declare type Dashes = number[];
-export interface DashLineOptions {
+export type Dashes = number[];
+export type DashLineOptions = {
     dash?: Dashes;
     width?: number;
     color?: number;
     alpha?: number;
     scale?: number;
     useTexture?: boolean;
-    cap?: PIXI.LINE_CAP;
-    join?: PIXI.LINE_JOIN;
+    cap?: "butt" | "round" | "square";
+    join?: "bevel" | "miter" | "round";
     alignment?: number;
-}
+};
 export declare class DashLine {
-    graphics: PIXI.Graphics;
+    graphics: Graphics;
     /** current length of the line */
     lineLength: number;
     /** cursor location */
-    cursor: PIXI.Point;
+    cursor: Point;
     /** desired scale of line */
     scale: number;
     private activeTexture;
@@ -26,7 +26,7 @@ export declare class DashLine {
     private dash;
     private useTexture;
     private options;
-    static dashTextureCache: Record<string, PIXI.Texture>;
+    static dashTextureCache: Record<string, Texture>;
     /**
      * Create a DashLine
      * @param graphics
@@ -40,17 +40,19 @@ export declare class DashLine {
      * @param [options.join] - add a PIXI.LINE_JOIN style to the dashed lines (only works for useTexture: false)
      * @param [options.alignment] - The alignment of any lines drawn (0.5 = middle, 1 = outer, 0 = inner)
      */
-    constructor(graphics: PIXI.Graphics, options?: DashLineOptions);
+    constructor(graphics: Graphics, options?: DashLineOptions);
     /** resets line style to enable dashed line (useful if lineStyle was changed on graphics element) */
-    setLineStyle(): void;
+    setStrokeStyle(): Promise<void>;
     private static distance;
     moveTo(x: number, y: number): this;
     lineTo(x: number, y: number, closePath?: boolean): this;
     closePath(): void;
-    drawCircle(x: number, y: number, radius: number, points?: number, matrix?: PIXI.Matrix): this;
-    drawEllipse(x: number, y: number, radiusX: number, radiusY: number, points?: number, matrix?: PIXI.Matrix): this;
-    drawPolygon(points: PIXI.Point[] | number[], matrix?: PIXI.Matrix): this;
-    drawRect(x: number, y: number, width: number, height: number, matrix?: PIXI.Matrix): this;
-    private adjustLineStyle;
+    circle(x: number, y: number, radius: number, points?: number, matrix?: Matrix): this;
+    ellipse(x: number, y: number, radiusX: number, radiusY: number, points?: number, matrix?: Matrix): this;
+    poly(points: Point[] | number[], matrix?: Matrix): this;
+    rect(x: number, y: number, width: number, height: number, matrix?: Matrix): this;
+    roundRect(x: number, y: number, width: number, height: number, cornerRadius?: number, matrix?: Matrix): this;
+    private drawDashedArc;
+    private adjustStrokeStyle;
     private static getTexture;
 }
