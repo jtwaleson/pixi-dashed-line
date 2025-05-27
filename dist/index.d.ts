@@ -11,6 +11,7 @@ export type DashLineOptions = {
     cap?: "butt" | "round" | "square";
     join?: "bevel" | "miter" | "round";
     alignment?: number;
+    offset?: number;
 };
 export declare class DashLine {
     graphics: Graphics;

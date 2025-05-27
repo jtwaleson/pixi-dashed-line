@@ -41944,7 +41944,8 @@ ${e2}`);
     alpha: 1,
     scale: 1,
     useTexture: false,
-    alignment: 0.5
+    alignment: 0.5,
+    offset: 0
   };
   var DashLine = class _DashLine {
     graphics;
@@ -42050,7 +42051,7 @@ ${e2}`);
         const sin = Math.sin(angle);
         let x0 = this.cursor.x;
         let y0 = this.cursor.y;
-        const place = this.lineLength % (this.dashSize * this.scale);
+        const place = (this.lineLength + this.options.offset) % (this.dashSize * this.scale);
         let dashIndex = 0;
         let dashStart = 0;
         let dashX = 0;
@@ -42310,7 +42311,7 @@ ${e2}`);
       if (this.scale !== 1) {
         strokeStyle.matrix.scale(this.scale, this.scale);
       }
-      const textureStart = -this.lineLength;
+      const textureStart = -(this.lineLength + this.options.offset);
       strokeStyle.matrix.translate(
         this.cursor.x + textureStart * Math.cos(angle),
         this.cursor.y + textureStart * Math.sin(angle)
@@ -42363,7 +42364,7 @@ ${e2}`);
   function checkbox() {
     return document.querySelector("#use-texture");
   }
-  function setup() {
+  async function setup() {
     const canvas = document.querySelector("canvas");
     if (!canvas) return;
     const application = new Application({
@@ -42373,6 +42374,7 @@ ${e2}`);
       antialias: true,
       backgroundAlpha: 0
     });
+    await application.init();
     viewport = application.stage.addChild(new it({
       screenWidth: window.innerWidth,
       screenHeight: window.innerHeight,
