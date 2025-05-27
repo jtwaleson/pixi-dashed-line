@@ -1,8 +1,14 @@
-import * as PIXI from 'pixi.js'
+import { 
+    Application, 
+    Graphics, 
+    Text,
+    LineCap,
+    LineJoin
+} from 'pixi.js'
 import { Viewport } from 'pixi-viewport'
 import { DashLine } from '../lib'
 
-let viewport: Viewport, g: PIXI.Graphics, x2: number, y2: number
+let viewport: Viewport, g: Graphics, x2: number, y2: number
 
 let useTexture = false
 
@@ -12,7 +18,9 @@ function checkbox() {
 
 function setup() {
     const canvas = document.querySelector('canvas')
-    const application = new PIXI.Application({
+    if (!canvas) return
+
+    const application = new Application({
         view: canvas,
         width: window.innerWidth,
         height: window.innerHeight,
@@ -24,9 +32,10 @@ function setup() {
         screenHeight: window.innerHeight,
         passiveWheel: false,
         stopPropagation: true,
+        events: application.renderer.events
     }))
     viewport.pinch().wheel().decelerate().drag()
-    g = viewport.addChild(new PIXI.Graphics())
+    g = viewport.addChild(new Graphics())
     viewport.on('zoomed', () => draw())
     y2 = window.innerHeight - 100
     x2 = window.innerWidth - 100
@@ -47,9 +56,12 @@ function drawScalingRectangle() {
         color: 0,
         alignment: 1,
     })
-    dash.drawRect(100, 100, x2 - 100, y2 - 100)
+    dash.rect(100, 100, x2 - 100, y2 - 100)
 
-    const text = g.addChild(new PIXI.Text('This rectangle\'s outline size remains constant when zooming', { fill: 'black', fontSize: '15px' }))
+    const text = g.addChild(new Text({
+        text: 'This rectangle\'s outline size remains constant when zooming',
+        style: { fill: 'black', fontSize: 15 }
+    }))
     text.position.set(x2 - text.width, 100 - text.height - 5)
 }
 
@@ -59,12 +71,15 @@ function drawJoinCapRectangle() {
         width: 3,
         color: 0xaa00aa,
         useTexture,
-        cap: PIXI.LINE_CAP.ROUND,
-        join: PIXI.LINE_JOIN.ROUND,
+        cap: 'round',
+        join: 'round',
     })
-    dash.drawRect(150, 150, x2 - 200, y2 - 200)
+    dash.rect(150, 150, x2 - 200, y2 - 200)
 
-    const text = g.addChild(new PIXI.Text('Using cap and joins (only works when useTexture: false)', { fill: 'black', fontSize: '15px' }))
+    const text = g.addChild(new Text({
+        text: 'Using cap and joins (only works when useTexture: false)',
+        style: { fill: 'black', fontSize: 15 }
+    }))
     text.position.set(x2 - 50 - text.width, 150 - text.height - 5)
 }
 
@@ -77,7 +92,7 @@ function drawCircle() {
     })
     const x = window.innerWidth / 2
     const y = window.innerHeight / 2
-    dash.drawCircle(x, y, 100)
+    dash.circle(x, y, 100)
 }
 
 function drawTinyCircle() {
@@ -89,7 +104,7 @@ function drawTinyCircle() {
     })
     const x = window.innerWidth / 2
     const y = window.innerHeight / 2
-    dash.drawCircle(x, y, 5)
+    dash.circle(x, y, 5)
 }
 
 function drawEllipse() {
@@ -101,7 +116,7 @@ function drawEllipse() {
     })
     const x = window.innerWidth / 2
     const y = window.innerHeight / 2
-    dot.drawEllipse(x, y, 300, 200)
+    dot.ellipse(x, y, 300, 200)
 }
 
 function drawPolygon() {
@@ -113,7 +128,7 @@ function drawPolygon() {
     const x = window.innerWidth / 2
     const y = window.innerHeight / 2
     const size = 20
-    dash.drawPolygon([x, y - size, x - size, y + size, x + size, y + size, x, y - size])
+    dash.poly([x, y - size, x - size, y + size, x + size, y + size, x, y - size])
 }
 
 function draw() {
