@@ -16,7 +16,7 @@ function checkbox() {
     return document.querySelector('#use-texture') as HTMLInputElement
 }
 
-function setup() {
+async function setup() {
     const canvas = document.querySelector('canvas')
     if (!canvas) return
 
@@ -27,6 +27,7 @@ function setup() {
         antialias: true,
         backgroundAlpha: 0,
     })
+    await application.init()
     viewport = application.stage.addChild(new Viewport({
         screenWidth: window.innerWidth,
         screenHeight: window.innerHeight,

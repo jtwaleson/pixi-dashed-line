@@ -19,6 +19,7 @@ export type DashLineOptions = {
     cap?: "butt" | "round" | "square"
     join?: "bevel" | "miter" | "round"
     alignment?: number
+    offset?: number
 }
 
 function getPointOnArc(
@@ -48,6 +49,7 @@ const dashLineOptionsDefault: Partial<DashLineOptions> = {
     scale: 1,
     useTexture: false,
     alignment: 0.5,
+    offset: 0,
 }
 
 export class DashLine {
@@ -174,8 +176,8 @@ export class DashLine {
             let x0 = this.cursor.x
             let y0 = this.cursor.y
 
-            // find the first part of the dash for this line
-            const place = this.lineLength % (this.dashSize * this.scale)
+            // find the first part of the dash for this line, taking offset into account
+            const place = (this.lineLength + this.options.offset) % (this.dashSize * this.scale)
             let dashIndex: number = 0
             let dashStart: number = 0
             let dashX = 0
@@ -517,7 +519,7 @@ export class DashLine {
         if (this.scale !== 1) {
             strokeStyle.matrix.scale(this.scale, this.scale)
         }
-        const textureStart = -this.lineLength
+        const textureStart = -(this.lineLength + this.options.offset)
         strokeStyle.matrix.translate(
             this.cursor.x + textureStart * Math.cos(angle),
             this.cursor.y + textureStart * Math.sin(angle)
