@@ -8,7 +8,6 @@ export interface DashLineOptions {
     alpha?: number;
     scale?: number;
     useTexture?: boolean;
-    useDots?: boolean;
     cap?: PIXI.LINE_CAP;
     join?: PIXI.LINE_JOIN;
     alignment?: number;

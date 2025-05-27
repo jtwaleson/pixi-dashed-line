@@ -10,7 +10,6 @@ export type DashLineOptions = {
     alpha?: number
     scale?: number
     useTexture?: boolean
-    useDots?: boolean
     cap?: "butt" | "round" | "square"
     join?: "bevel" | "miter" | "round"
     alignment?: number
