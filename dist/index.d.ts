@@ -56,4 +56,60 @@ export declare class DashLine {
     private drawDashedArc;
     private adjustStrokeStyle;
     private static getTexture;
+    /**
+     * Draws a dashed cubic Bezier curve from the current position to the specified end point.
+     * @param cp1x - The x-coordinate of the first control point
+     * @param cp1y - The y-coordinate of the first control point
+     * @param cp2x - The x-coordinate of the second control point
+     * @param cp2y - The y-coordinate of the second control point
+     * @param x - The x-coordinate of the end point
+     * @param y - The y-coordinate of the end point
+     * @param smoothness - The smoothness factor for curve subdivision (default: 0.5)
+     * @returns The instance of the current object for chaining
+     */
+    bezierCurveTo(cp1x: number, cp1y: number, cp2x: number, cp2y: number, x: number, y: number, smoothness?: number): this;
+    /**
+     * Draws a dashed quadratic curve from the current position to the specified end point.
+     * @param cpx - The x-coordinate of the control point
+     * @param cpy - The y-coordinate of the control point
+     * @param x - The x-coordinate of the end point
+     * @param y - The y-coordinate of the end point
+     * @param smoothness - The smoothness factor for curve subdivision (default: 0.5)
+     * @returns The instance of the current object for chaining
+     */
+    quadraticCurveTo(cpx: number, cpy: number, x: number, y: number, smoothness?: number): this;
+    /**
+     * Adaptive subdivision of a cubic Bezier curve into line segments
+     * @param x0 - Start point x
+     * @param y0 - Start point y
+     * @param x1 - First control point x
+     * @param y1 - First control point y
+     * @param x2 - Second control point x
+     * @param y2 - Second control point y
+     * @param x3 - End point x
+     * @param y3 - End point y
+     * @param smoothness - Smoothness factor (lower = more subdivisions)
+     * @returns Array of points representing the curve
+     */
+    private adaptiveBezierSubdivision;
+    /**
+     * Adaptive subdivision of a quadratic curve into line segments
+     * @param x0 - Start point x
+     * @param y0 - Start point y
+     * @param x1 - Control point x
+     * @param y1 - Control point y
+     * @param x2 - End point x
+     * @param y2 - End point y
+     * @param smoothness - Smoothness factor (lower = more subdivisions)
+     * @returns Array of points representing the curve
+     */
+    private adaptiveQuadraticSubdivision;
+    /**
+     * Recursive Bezier subdivision
+     */
+    private subdivideBezier;
+    /**
+     * Recursive quadratic subdivision
+     */
+    private subdivideQuadratic;
 }

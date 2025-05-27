@@ -42353,6 +42353,206 @@ ${e2}`);
       _DashLine.dashTextureCache[key] = texture;
       return texture;
     }
+    /**
+     * Draws a dashed cubic Bezier curve from the current position to the specified end point.
+     * @param cp1x - The x-coordinate of the first control point
+     * @param cp1y - The y-coordinate of the first control point
+     * @param cp2x - The x-coordinate of the second control point
+     * @param cp2y - The y-coordinate of the second control point
+     * @param x - The x-coordinate of the end point
+     * @param y - The y-coordinate of the end point
+     * @param smoothness - The smoothness factor for curve subdivision (default: 0.5)
+     * @returns The instance of the current object for chaining
+     */
+    bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x3, y3, smoothness = 0.5) {
+      const startX = this.cursor.x;
+      const startY = this.cursor.y;
+      const points = this.adaptiveBezierSubdivision(
+        startX,
+        startY,
+        cp1x,
+        cp1y,
+        cp2x,
+        cp2y,
+        x3,
+        y3,
+        smoothness
+      );
+      for (let i2 = 1; i2 < points.length; i2++) {
+        this.lineTo(points[i2].x, points[i2].y);
+      }
+      return this;
+    }
+    /**
+     * Draws a dashed quadratic curve from the current position to the specified end point.
+     * @param cpx - The x-coordinate of the control point
+     * @param cpy - The y-coordinate of the control point
+     * @param x - The x-coordinate of the end point
+     * @param y - The y-coordinate of the end point
+     * @param smoothness - The smoothness factor for curve subdivision (default: 0.5)
+     * @returns The instance of the current object for chaining
+     */
+    quadraticCurveTo(cpx, cpy, x3, y3, smoothness = 0.5) {
+      const startX = this.cursor.x;
+      const startY = this.cursor.y;
+      const points = this.adaptiveQuadraticSubdivision(
+        startX,
+        startY,
+        cpx,
+        cpy,
+        x3,
+        y3,
+        smoothness
+      );
+      for (let i2 = 1; i2 < points.length; i2++) {
+        this.lineTo(points[i2].x, points[i2].y);
+      }
+      return this;
+    }
+    /**
+     * Adaptive subdivision of a cubic Bezier curve into line segments
+     * @param x0 - Start point x
+     * @param y0 - Start point y
+     * @param x1 - First control point x
+     * @param y1 - First control point y
+     * @param x2 - Second control point x
+     * @param y2 - Second control point y
+     * @param x3 - End point x
+     * @param y3 - End point y
+     * @param smoothness - Smoothness factor (lower = more subdivisions)
+     * @returns Array of points representing the curve
+     */
+    adaptiveBezierSubdivision(x0, y0, x1, y1, x23, y22, x3, y3, smoothness) {
+      const points = [new Point(x0, y0)];
+      this.subdivideBezier(
+        x0,
+        y0,
+        x1,
+        y1,
+        x23,
+        y22,
+        x3,
+        y3,
+        smoothness,
+        points
+      );
+      points.push(new Point(x3, y3));
+      return points;
+    }
+    /**
+     * Adaptive subdivision of a quadratic curve into line segments
+     * @param x0 - Start point x
+     * @param y0 - Start point y
+     * @param x1 - Control point x
+     * @param y1 - Control point y
+     * @param x2 - End point x
+     * @param y2 - End point y
+     * @param smoothness - Smoothness factor (lower = more subdivisions)
+     * @returns Array of points representing the curve
+     */
+    adaptiveQuadraticSubdivision(x0, y0, x1, y1, x23, y22, smoothness) {
+      const points = [new Point(x0, y0)];
+      this.subdivideQuadratic(
+        x0,
+        y0,
+        x1,
+        y1,
+        x23,
+        y22,
+        smoothness,
+        points
+      );
+      points.push(new Point(x23, y22));
+      return points;
+    }
+    /**
+     * Recursive Bezier subdivision
+     */
+    subdivideBezier(x0, y0, x1, y1, x23, y22, x3, y3, smoothness, points) {
+      const ux2 = 3 * x1 - 2 * x0 - x3;
+      const uy2 = 3 * y1 - 2 * y0 - y3;
+      const vx2 = 3 * x23 - 2 * x3 - x0;
+      const vy2 = 3 * y22 - 2 * y3 - y0;
+      const flatness = Math.max(ux2 * ux2, vx2 * vx2) + Math.max(uy2 * uy2, vy2 * vy2);
+      if (flatness <= smoothness) {
+        return;
+      }
+      const x01 = (x0 + x1) / 2;
+      const y01 = (y0 + y1) / 2;
+      const x12 = (x1 + x23) / 2;
+      const y12 = (y1 + y22) / 2;
+      const x232 = (x23 + x3) / 2;
+      const y23 = (y22 + y3) / 2;
+      const x012 = (x01 + x12) / 2;
+      const y012 = (y01 + y12) / 2;
+      const x123 = (x12 + x232) / 2;
+      const y123 = (y12 + y23) / 2;
+      const x0123 = (x012 + x123) / 2;
+      const y0123 = (y012 + y123) / 2;
+      this.subdivideBezier(
+        x0,
+        y0,
+        x01,
+        y01,
+        x012,
+        y012,
+        x0123,
+        y0123,
+        smoothness,
+        points
+      );
+      points.push(new Point(x0123, y0123));
+      this.subdivideBezier(
+        x0123,
+        y0123,
+        x123,
+        y123,
+        x232,
+        y23,
+        x3,
+        y3,
+        smoothness,
+        points
+      );
+    }
+    /**
+     * Recursive quadratic subdivision
+     */
+    subdivideQuadratic(x0, y0, x1, y1, x23, y22, smoothness, points) {
+      const dx = x0 - 2 * x1 + x23;
+      const dy = y0 - 2 * y1 + y22;
+      const flatness = dx * dx + dy * dy;
+      if (flatness <= smoothness) {
+        return;
+      }
+      const x01 = (x0 + x1) / 2;
+      const y01 = (y0 + y1) / 2;
+      const x12 = (x1 + x23) / 2;
+      const y12 = (y1 + y22) / 2;
+      const x012 = (x01 + x12) / 2;
+      const y012 = (y01 + y12) / 2;
+      this.subdivideQuadratic(
+        x0,
+        y0,
+        x01,
+        y01,
+        x012,
+        y012,
+        smoothness,
+        points
+      );
+      points.push(new Point(x012, y012));
+      this.subdivideQuadratic(
+        x012,
+        y012,
+        x12,
+        y12,
+        x23,
+        y22,
+        smoothness,
+        points
+      );
+    }
   };
 
   // demo/index.ts
