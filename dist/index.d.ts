@@ -12,6 +12,13 @@ export type DashLineOptions = {
     join?: "bevel" | "miter" | "round";
     alignment?: number;
     offset?: number;
+    /** Optional clipping rectangle: {x, y, width, height} */
+    clipRect?: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
 };
 export declare class DashLine {
     graphics: Graphics;
@@ -28,6 +35,7 @@ export declare class DashLine {
     private useTexture;
     private options;
     static dashTextureCache: Record<string, Texture>;
+    private clipRect?;
     /**
      * Create a DashLine
      * @param graphics
@@ -112,4 +120,10 @@ export declare class DashLine {
      * Recursive quadratic subdivision
      */
     private subdivideQuadratic;
+    /**
+     * Helper to clip a line segment to the clipRect, if set.
+     * Returns null if the segment is completely outside.
+     * Uses Cohen–Sutherland algorithm.
+     */
+    private clipLine;
 }

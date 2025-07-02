@@ -37,6 +37,7 @@ export class DashLine {
     options;
     // cache of PIXI.Textures for dashed lines
     static dashTextureCache = {};
+    clipRect;
     /**
      * Create a DashLine
      * @param graphics
@@ -60,6 +61,7 @@ export class DashLine {
         this.dashSize = this.dash.reduce((a, b) => a + b);
         this.useTexture = Boolean(mergedOpts.useTexture);
         this.options = mergedOpts;
+        this.clipRect = mergedOpts.clipRect;
         // Initialize stroke style
         this.setStrokeStyle().catch(console.error);
     }
@@ -108,6 +110,22 @@ export class DashLine {
         const length = DashLine.distance(this.cursor.x, this.cursor.y, x, y);
         const angle = Math.atan2(y - this.cursor.y, x - this.cursor.x);
         const closed = closePath && x === this.start.x && y === this.start.y;
+        if (this.clipRect) {
+            // Only draw visible segments
+            const clipped = this.clipLine(this.cursor.x, this.cursor.y, x, y);
+            if (!clipped) {
+                this.cursor.set(x, y);
+                return this;
+            }
+            const [cx0, cy0, cx1, cy1] = clipped;
+            // Move cursor if start was clipped
+            if (cx0 !== this.cursor.x || cy0 !== this.cursor.y) {
+                this.graphics.moveTo(cx0, cy0);
+            }
+            // Draw to clipped end
+            x = cx1;
+            y = cy1;
+        }
         if (this.useTexture) {
             this.graphics.moveTo(this.cursor.x, this.cursor.y);
             this.adjustStrokeStyle(angle);
@@ -540,6 +558,76 @@ export class DashLine {
         points.push(new Point(x012, y012));
         // Recursively subdivide the second half
         this.subdivideQuadratic(x012, y012, x12, y12, x2, y2, smoothness, points);
+    }
+    /**
+     * Helper to clip a line segment to the clipRect, if set.
+     * Returns null if the segment is completely outside.
+     * Uses Cohen–Sutherland algorithm.
+     */
+    clipLine(x0, y0, x1, y1) {
+        if (!this.clipRect)
+            return [x0, y0, x1, y1];
+        const { x: rx, y: ry, width, height } = this.clipRect;
+        const xmin = rx, xmax = rx + width, ymin = ry, ymax = ry + height;
+        // Outcode constants
+        const INSIDE = 0, LEFT = 1, RIGHT = 2, BOTTOM = 4, TOP = 8;
+        function computeOutCode(x, y) {
+            let code = INSIDE;
+            if (x < xmin)
+                code |= LEFT;
+            else if (x > xmax)
+                code |= RIGHT;
+            if (y < ymin)
+                code |= BOTTOM;
+            else if (y > ymax)
+                code |= TOP;
+            return code;
+        }
+        let outcode0 = computeOutCode(x0, y0);
+        let outcode1 = computeOutCode(x1, y1);
+        let accept = false;
+        while (true) {
+            if (!(outcode0 | outcode1)) {
+                accept = true;
+                break;
+            }
+            else if (outcode0 & outcode1) {
+                break;
+            }
+            else {
+                let x = 0, y = 0;
+                const outcodeOut = outcode0 ? outcode0 : outcode1;
+                if (outcodeOut & TOP) {
+                    x = x0 + (x1 - x0) * (ymax - y0) / (y1 - y0);
+                    y = ymax;
+                }
+                else if (outcodeOut & BOTTOM) {
+                    x = x0 + (x1 - x0) * (ymin - y0) / (y1 - y0);
+                    y = ymin;
+                }
+                else if (outcodeOut & RIGHT) {
+                    y = y0 + (y1 - y0) * (xmax - x0) / (x1 - x0);
+                    x = xmax;
+                }
+                else if (outcodeOut & LEFT) {
+                    y = y0 + (y1 - y0) * (xmin - x0) / (x1 - x0);
+                    x = xmin;
+                }
+                if (outcodeOut === outcode0) {
+                    x0 = x;
+                    y0 = y;
+                    outcode0 = computeOutCode(x0, y0);
+                }
+                else {
+                    x1 = x;
+                    y1 = y;
+                    outcode1 = computeOutCode(x1, y1);
+                }
+            }
+        }
+        if (accept)
+            return [x0, y0, x1, y1];
+        return null;
     }
 }
 //# sourceMappingURL=index.js.map
