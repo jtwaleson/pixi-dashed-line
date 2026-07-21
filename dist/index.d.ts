@@ -54,6 +54,11 @@ export declare class DashLine {
     setStrokeStyle(): Promise<void>;
     private static distance;
     moveTo(x: number, y: number): this;
+    /**
+     * Update stroke/dash/clip options without reconstructing the DashLine.
+     * Call before drawing a new path (typically after graphics.clear()).
+     */
+    setDrawOptions(options: Partial<DashLineOptions>): this;
     lineTo(x: number, y: number, closePath?: boolean): this;
     closePath(): void;
     circle(x: number, y: number, radius: number, points?: number, matrix?: Matrix): this;

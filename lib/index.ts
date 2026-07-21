@@ -150,56 +150,114 @@ export class DashLine {
     moveTo(x: number, y: number): this {
         this.lineLength = 0
         this.cursor.set(x, y)
-        this.start = new Point(x, y)
+        this.start.set(x, y)
         this.graphics.moveTo(this.cursor.x, this.cursor.y)
         return this
     }
 
+    /**
+     * Update stroke/dash/clip options without reconstructing the DashLine.
+     * Call before drawing a new path (typically after graphics.clear()).
+     */
+    setDrawOptions(options: Partial<DashLineOptions>): this {
+        if (options.dash) {
+            this.dash = options.dash
+            this.dashSize = this.dash.reduce((a, b) => a + b, 0)
+            this.options.dash = options.dash
+        }
+        if (options.width !== undefined) {
+            this.options.width = options.width
+        }
+        if (options.color !== undefined) {
+            this.options.color = options.color
+        }
+        if (options.alpha !== undefined) {
+            this.options.alpha = options.alpha
+        }
+        if (options.scale !== undefined) {
+            this.options.scale = options.scale
+            this.scale = options.scale
+        }
+        if (options.offset !== undefined) {
+            this.options.offset = options.offset
+        }
+        if (options.cap !== undefined) {
+            this.options.cap = options.cap
+        }
+        if (options.join !== undefined) {
+            this.options.join = options.join
+        }
+        if (options.alignment !== undefined) {
+            this.options.alignment = options.alignment
+        }
+        if (options.clipRect !== undefined) {
+            this.clipRect = options.clipRect ?? undefined
+            this.options.clipRect = options.clipRect as Required<DashLineOptions>["clipRect"]
+        }
+        return this
+    }
+
     lineTo(x: number, y: number, closePath?: boolean): this {
-        if (this.lineLength === undefined) {
+        if (typeof this.lineLength !== "number") {
             this.moveTo(0, 0)
         }
-        const length = DashLine.distance(this.cursor.x, this.cursor.y, x, y)
-        const angle = Math.atan2(y - this.cursor.y, x - this.cursor.x)
-        const closed = closePath && x === this.start.x && y === this.start.y
+        const destX = x
+        const destY = y
+        const length = DashLine.distance(this.cursor.x, this.cursor.y, destX, destY)
+        const angle = Math.atan2(destY - this.cursor.y, destX - this.cursor.x)
+        const closed = Boolean(closePath) && destX === this.start.x && destY === this.start.y
+
+        let drawX0 = this.cursor.x
+        let drawY0 = this.cursor.y
+        let drawX1 = destX
+        let drawY1 = destY
+        let drawLength = length
+        let phaseLength = this.lineLength
+
         if (this.clipRect) {
-            // Only draw visible segments
-            const clipped = this.clipLine(this.cursor.x, this.cursor.y, x, y)
+            const clipped = this.clipLine(this.cursor.x, this.cursor.y, destX, destY)
             if (!clipped) {
-                this.cursor.set(x, y)
+                // Fully outside: keep dash phase continuous along the logical path.
+                this.lineLength += length
+                this.cursor.set(destX, destY)
                 return this
             }
             const [cx0, cy0, cx1, cy1] = clipped
-            // Move cursor if start was clipped
+            const skipped = DashLine.distance(this.cursor.x, this.cursor.y, cx0, cy0)
+            phaseLength = this.lineLength + skipped
+            drawX0 = cx0
+            drawY0 = cy0
+            drawX1 = cx1
+            drawY1 = cy1
+            drawLength = DashLine.distance(cx0, cy0, cx1, cy1)
             if (cx0 !== this.cursor.x || cy0 !== this.cursor.y) {
                 this.graphics.moveTo(cx0, cy0)
             }
-            // Draw to clipped end
-            x = cx1; y = cy1
         }
+
         if (this.useTexture) {
-            this.graphics.moveTo(this.cursor.x, this.cursor.y)
+            this.graphics.moveTo(drawX0, drawY0)
+            this.cursor.set(drawX0, drawY0)
             this.adjustStrokeStyle(angle)
             if (closed && this.dash.length % 2 === 0) {
-                const gap = Math.min(this.dash[this.dash.length - 1], length)
+                const gap = Math.min(this.dash[this.dash.length - 1], drawLength)
                 this.graphics.lineTo(
-                    x - Math.cos(angle) * gap,
-                    y - Math.sin(angle) * gap
+                    drawX1 - Math.cos(angle) * gap,
+                    drawY1 - Math.sin(angle) * gap
                 )
                 this.graphics.closePath()
             } else {
-                this.graphics.lineTo(x, y)
+                this.graphics.lineTo(drawX1, drawY1)
             }
         } else {
             const cos = Math.cos(angle)
             const sin = Math.sin(angle)
-            let x0 = this.cursor.x
-            let y0 = this.cursor.y
+            let x0 = drawX0
+            let y0 = drawY0
 
-            // find the first part of the dash for this line, taking offset into account
-            const place = (this.lineLength + this.options.offset) % (this.dashSize * this.scale)
-            let dashIndex: number = 0
-            let dashStart: number = 0
+            const place = (phaseLength + this.options.offset) % (this.dashSize * this.scale)
+            let dashIndex = 0
+            let dashStart = 0
             let dashX = 0
             for (let i = 0; i < this.dash.length; i++) {
                 const dashSize = this.dash[i] * this.scale
@@ -212,7 +270,7 @@ export class DashLine {
                 }
             }
 
-            let remaining = length
+            let remaining = drawLength
             while (remaining > 0) {
                 const dashSize = this.dash[dashIndex] * this.scale - dashStart
                 const dist = remaining > dashSize ? dashSize : remaining
@@ -226,12 +284,7 @@ export class DashLine {
                     if (remainingDistance <= dist) {
                         if (dashIndex % 2 === 0) {
                             const lastDash =
-                                DashLine.distance(
-                                    x0,
-                                    y0,
-                                    this.start.x,
-                                    this.start.y
-                                ) -
+                                DashLine.distance(x0, y0, this.start.x, this.start.y) -
                                 this.dash[this.dash.length - 1] * this.scale
                             x0 += cos * lastDash
                             y0 += sin * lastDash
@@ -255,8 +308,9 @@ export class DashLine {
                 dashStart = 0
             }
         }
+
         this.lineLength += length
-        this.cursor.set(x, y)
+        this.cursor.set(destX, destY)
         return this
     }
 
